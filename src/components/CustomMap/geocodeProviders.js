@@ -1,4 +1,4 @@
-export function createNominatimProvider({ language = 'ru' } = {}) {
+export function createNominatimProvider({ language = 'ru', countryCodes = '' } = {}) {
   return {
     name: 'nominatim',
 
@@ -11,6 +11,7 @@ export function createNominatimProvider({ language = 'ru' } = {}) {
       url.searchParams.set('limit', '6');
       url.searchParams.set('q', query);
       url.searchParams.set('accept-language', language);
+      if (countryCodes) url.searchParams.set('countrycodes', countryCodes);
 
       const res = await fetch(url.toString(), { signal });
       if (!res.ok) throw new Error(`Nominatim error: ${res.status}`);

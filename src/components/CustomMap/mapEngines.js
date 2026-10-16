@@ -35,6 +35,10 @@ export function createLeafletEngine({ container, center, zoom, marker, pinColor,
     if (markerLayer) markerLayer.setLatLng([lat, lng]);
     else markerLayer = L.marker([lat, lng], { icon }).addTo(map);
   };
+  const clearMarker = () => {
+    markerLayer?.remove();
+    markerLayer = null;
+  };
   if (marker) setMarker(marker.lat, marker.lng);
 
   const tiles = attachTileFallback(L, map, TILE_PROVIDERS, onTileStatus, tileIndex);
@@ -47,6 +51,7 @@ export function createLeafletEngine({ container, center, zoom, marker, pinColor,
     kind: 'leaflet',
     flyTo: (lat, lng, targetZoom = 16) => map.flyTo([lat, lng], targetZoom, { duration: 0.6 }),
     setMarker,
+    clearMarker,
     getView: () => {
       const c = map.getCenter();
       return { center: [c.lat, c.lng], zoom: map.getZoom() };
@@ -87,6 +92,10 @@ export function createYandexEngine({ ymaps, container, center, zoom, marker, pin
     );
     map.geoObjects.add(placemark);
   };
+  const clearMarker = () => {
+    if (placemark) map.geoObjects.remove(placemark);
+    placemark = null;
+  };
   if (marker) setMarker(marker.lat, marker.lng);
 
   map.events.add('click', (e) => {
@@ -98,6 +107,7 @@ export function createYandexEngine({ ymaps, container, center, zoom, marker, pin
     kind: 'yandex',
     flyTo: (lat, lng, targetZoom = 16) => map.setCenter([lat, lng], targetZoom, { duration: 300 }),
     setMarker,
+    clearMarker,
     getView: () => ({ center: map.getCenter(), zoom: map.getZoom() }),
     setTileProvider: () => {},
     destroy: () => map.destroy(),

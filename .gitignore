@@ -27,3 +27,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Данные хакатона не выносим за его пределы
+train*.json
+sample_*.json
+data/

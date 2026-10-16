@@ -11,12 +11,14 @@ const DEFAULT_CENTER = [73.10937, 49.80469];
 const STYLE_STORAGE_KEY = 'custom-map-style';
 const DEFAULT_STYLE_ID = TILE_PROVIDERS[0].id;
 
-function readSavedStyle() {
+function readSavedStyle(fallback = DEFAULT_STYLE_ID) {
+  const known = (id) => MAP_STYLE_OPTIONS.some((option) => option.id === id);
+  const safeFallback = known(fallback) ? fallback : DEFAULT_STYLE_ID;
   try {
     const saved = window.localStorage.getItem(STYLE_STORAGE_KEY);
-    return MAP_STYLE_OPTIONS.some((option) => option.id === saved) ? saved : DEFAULT_STYLE_ID;
+    return known(saved) ? saved : safeFallback;
   } catch {
-    return DEFAULT_STYLE_ID;
+    return safeFallback;
   }
 }
 
@@ -36,11 +38,14 @@ export default function CustomMap({
   initialCenter,
   initialZoom = 12,
   height = '100%',
+  defaultStyleId,
+  focusPoint,
+  focusQueries,
   onAddressChange,
 }) {
   const geo = useGeocoder(geocoder);
 
-  const [styleId, setStyleId] = useState(readSavedStyle);
+  const [styleId, setStyleId] = useState(() => readSavedStyle(defaultStyleId));
   const [ymaps, setYmaps] = useState(null);
   const [yandexFailed, setYandexFailed] = useState(false);
   const [tileStatus, setTileStatus] = useState(null);
@@ -162,7 +167,7 @@ export default function CustomMap({
   }, [engineKind, ymaps]);
 
   useEffect(() => {
-    if (initialCenter || !('geolocation' in navigator)) return;
+    if (initialCenter || focusPoint || focusQueries !== undefined || !('geolocation' in navigator)) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         if (pointRef.current) return;
@@ -194,6 +199,81 @@ export default function CustomMap({
     onAddressChangeRef.current?.(suggestion.normalized);
     geo.clear();
   };
+
+  const focusLat = focusPoint?.lat;
+  const focusLng = focusPoint?.lng;
+  const focusLabel = focusPoint?.label;
+
+  useEffect(() => {
+    if (!Number.isFinite(focusLat) || !Number.isFinite(focusLng)) return;
+    reverseIdRef.current += 1;
+    pointRef.current = { lat: focusLat, lng: focusLng };
+    viewRef.current = { center: [focusLat, focusLng], zoom: 16 };
+    engineRef.current?.flyTo(focusLat, focusLng, 16);
+    engineRef.current?.setMarker(focusLat, focusLng);
+    setResolving(false);
+    setSelected({ lat: focusLat, lng: focusLng, label: focusLabel || '', normalized: null, notFound: true });
+  }, [focusLat, focusLng, focusLabel]);
+
+  const focusKey = focusQueries ? JSON.stringify(focusQueries) : null;
+
+  useEffect(() => {
+    if (Number.isFinite(focusLat) || focusKey === null) return undefined;
+    const candidates = JSON.parse(focusKey);
+    const requestId = ++reverseIdRef.current;
+
+    if (candidates.length === 0) {
+      setResolving(false);
+      setSelected({ label: 'Мало данных для поиска на карте: нужен населённый пункт', normalized: null, notFound: true });
+      pointRef.current = null;
+      engineRef.current?.clearMarker();
+      engineRef.current?.flyTo(48, 67, 4);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const fits = (place, match = []) => {
+      const words = new Set(
+        `${place.label} ${place.name}`.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+      );
+      return match.every((m) => words.has(m));
+    };
+    setResolving(true);
+    setSelected({ label: '', normalized: null });
+
+    (async () => {
+      try {
+        for (let i = 0; i < candidates.length; i += 1) {
+          if (i > 0) await wait(1000);
+          if (controller.signal.aborted) return;
+          const results = await geocoder.search(candidates[i].q, { signal: controller.signal });
+          if (requestId !== reverseIdRef.current) return;
+          const first = results.find((place) => fits(place, candidates[i].match));
+          if (!first) continue;
+
+          const exact = candidates[i].exact && Boolean(first.normalized?.house);
+          const zoom = exact ? 17 : i === candidates.length - 1 ? 12 : 15;
+          pointRef.current = { lat: first.lat, lng: first.lng };
+          viewRef.current = { center: [first.lat, first.lng], zoom };
+          engineRef.current?.flyTo(first.lat, first.lng, zoom);
+          engineRef.current?.setMarker(first.lat, first.lng);
+          setSelected({ ...first, note: exact ? null : 'Точный дом не найден — показано приблизительно' });
+          return;
+        }
+        pointRef.current = null;
+        engineRef.current?.clearMarker();
+        setSelected({ label: 'Геокодер не нашёл этот адрес', normalized: null, notFound: true });
+      } catch (err) {
+        if (err.name === 'AbortError' || requestId !== reverseIdRef.current) return;
+        setSelected({ label: 'Геокодер недоступен — нет интернета?', normalized: null, notFound: true });
+      } finally {
+        if (requestId === reverseIdRef.current) setResolving(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [focusKey, focusLat, geocoder]);
 
   const handleSearchKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -363,9 +443,12 @@ export default function CustomMap({
               {selected.normalized && (
                 <div className="cm-address-card__meta">{formatPlaceMeta(selected.normalized)}</div>
               )}
-              <div className="cm-address-card__coords">
-                {selected.lat?.toFixed(6)}, {selected.lng?.toFixed(6)}
-              </div>
+              {selected.note && <div className="cm-address-card__note">{selected.note}</div>}
+              {Number.isFinite(selected.lat) && (
+                <div className="cm-address-card__coords">
+                  {selected.lat.toFixed(6)}, {selected.lng.toFixed(6)}
+                </div>
+              )}
             </>
           )}
         </div>
