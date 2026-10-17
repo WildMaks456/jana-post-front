@@ -12,6 +12,11 @@ server {
         proxy_send_timeout 600s;
     }
 
+    location /tiles/ {
+        types { application/octet-stream pmtiles; }
+        add_header Cache-Control "public, max-age=604800";
+    }
+
     location /assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";

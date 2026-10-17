@@ -39,13 +39,16 @@ export default function CustomMap({
   initialZoom = 12,
   height = '100%',
   defaultStyleId,
+  offlineStyleId = 'offline-light',
   focusPoint,
   focusQueries,
   onAddressChange,
 }) {
   const geo = useGeocoder(geocoder);
 
-  const [styleId, setStyleId] = useState(() => readSavedStyle(defaultStyleId));
+  const [styleId, setStyleId] = useState(() =>
+    navigator.onLine ? readSavedStyle(defaultStyleId) : offlineStyleId
+  );
   const [ymaps, setYmaps] = useState(null);
   const [yandexFailed, setYandexFailed] = useState(false);
   const [tileStatus, setTileStatus] = useState(null);
@@ -62,6 +65,7 @@ export default function CustomMap({
   const pointRef = useRef(null);
   const reverseIdRef = useRef(0);
   const styleIdRef = useRef(styleId);
+  const offlineStyleIdRef = useRef(offlineStyleId);
   const styleMenuRef = useRef(null);
   const onAddressChangeRef = useRef(onAddressChange);
 
@@ -155,6 +159,7 @@ export default function CustomMap({
         : createLeafletEngine({
             ...options,
             tileIndex: tileIndexOf(styleIdRef.current),
+            fallbackIndex: tileIndexOf(offlineStyleIdRef.current),
             onTileStatus: setTileStatus,
           });
     engineRef.current = engine;

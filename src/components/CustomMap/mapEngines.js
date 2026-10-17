@@ -12,7 +12,7 @@ function pinSvg(color) {
 
 const PIN_SIZE = [30, 42];
 
-export function createLeafletEngine({ container, center, zoom, marker, pinColor, tileIndex, onClick, onTileStatus }) {
+export function createLeafletEngine({ container, center, zoom, marker, pinColor, tileIndex, fallbackIndex, onClick, onTileStatus }) {
   const map = L.map(container, {
     center,
     zoom,
@@ -41,7 +41,7 @@ export function createLeafletEngine({ container, center, zoom, marker, pinColor,
   };
   if (marker) setMarker(marker.lat, marker.lng);
 
-  const tiles = attachTileFallback(L, map, TILE_PROVIDERS, onTileStatus, tileIndex);
+  const tiles = attachTileFallback(L, map, TILE_PROVIDERS, onTileStatus, tileIndex, fallbackIndex);
 
   map.on('click', (e) => onClick(e.latlng.lat, e.latlng.lng));
 

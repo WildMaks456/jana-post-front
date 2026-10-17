@@ -95,6 +95,7 @@ export default function Workspace({ records, fileName, theme, onToggleTheme, onS
           initialCenter={KAZAKHSTAN}
           initialZoom={5}
           defaultStyleId={theme === 'dark' ? 'carto-dark' : 'carto-voyager'}
+          offlineStyleId={theme === 'dark' ? 'offline-dark' : 'offline-light'}
           focusQueries={open && !hasCoords ? mapQueries(open) : undefined}
           focusPoint={hasCoords ? { lat: open.lat, lng: open.lng, label: open.raw_address } : undefined}
         />

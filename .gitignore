@@ -30,5 +30,6 @@ dist-ssr
 
 # Данные хакатона не выносим за его пределы
 train*.json
+public/tiles/
 sample_*.json
 data/

@@ -1,3 +1,5 @@
+import { OFFLINE_PROVIDERS, createOfflineLayer } from './offlineTiles';
+
 const CARTO_API_KEY = import.meta.env.VITE_CARTO_API_KEY;
 
 const CARTO_PROVIDERS = CARTO_API_KEY
@@ -60,6 +62,7 @@ export const TILE_PROVIDERS = [
     attribution: '© OpenStreetMap contributors, SRTM | © OpenTopoMap',
     maxZoom: 17,
   },
+  ...OFFLINE_PROVIDERS,
 ];
 
 export const YANDEX_PROVIDER = { id: 'yandex', label: 'Яндекс Карты', engine: 'yandex' };
@@ -72,6 +75,7 @@ export const MAP_STYLE_OPTIONS = [
 export const TILE_FALLBACK_TIMEOUT_MS = 6000;
 
 function createTileLayer(L, provider) {
+  if (provider.offline) return createOfflineLayer(L, provider);
   return L.tileLayer(provider.url, {
     subdomains: provider.subdomains || 'abc',
     attribution: provider.attribution,
@@ -80,7 +84,7 @@ function createTileLayer(L, provider) {
   });
 }
 
-export function attachTileFallback(L, map, providers, onStatusChange, startIndex = 0) {
+export function attachTileFallback(L, map, providers, onStatusChange, startIndex = 0, fallbackIndex = -1) {
   let index = startIndex;
   let currentLayer = null;
   let timer = null;
@@ -90,7 +94,7 @@ export function attachTileFallback(L, map, providers, onStatusChange, startIndex
   const startLayer = (i, { manual = false } = {}) => {
     if (timer) clearTimeout(timer);
     if (currentLayer) {
-      currentLayer.off();
+      currentLayer.off('tileload tileerror');
       map.removeLayer(currentLayer);
     }
 
@@ -116,6 +120,12 @@ export function attachTileFallback(L, map, providers, onStatusChange, startIndex
 
   const advanceAuto = () => {
     const failed = providers[index];
+    if (fallbackIndex >= 0 && !failed.offline) {
+      console.warn(`[CustomMap] Тайлы «${failed.label}» не пришли за ${TILE_FALLBACK_TIMEOUT_MS}мс. Переключаюсь на офлайн-карту.`);
+      startIndex = fallbackIndex;
+      startLayer(fallbackIndex);
+      return;
+    }
     const nextIndex = (index + 1) % providers.length;
 
     if (nextIndex === startIndex) {
@@ -146,7 +156,7 @@ export function attachTileFallback(L, map, providers, onStatusChange, startIndex
     detach: () => {
       detached = true;
       if (timer) clearTimeout(timer);
-      currentLayer?.off();
+      currentLayer?.off('tileload tileerror');
     },
   };
 }
