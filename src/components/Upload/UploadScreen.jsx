@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { linesToRecords, parseInputFile } from '../../address/records';
 import { CheckIcon, DownloadIcon, FileIcon, UploadFileGlyph } from '../Icons';
 import Logo from '../Logo';
+import ThemeToggle from '../ThemeToggle';
 import { ClayCoin, ClayDoc, ClayPin } from './Clay';
 import './UploadScreen.css';
 
@@ -11,7 +12,7 @@ const STEPS = [
   { tone: 'forest', Icon: DownloadIcon, title: 'Скачайте результат', text: 'JSON как sample_output' },
 ];
 
-export default function UploadScreen({ status, progress, error, onRun, onCancel }) {
+export default function UploadScreen({ status, progress, error, theme, onToggleTheme, onRun, onCancel }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
@@ -42,6 +43,7 @@ export default function UploadScreen({ status, progress, error, onRun, onCancel 
     <div className="landing">
       <header className="landing__header">
         <Logo />
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </header>
 
       <main className="bento">

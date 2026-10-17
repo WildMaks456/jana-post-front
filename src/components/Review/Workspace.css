@@ -60,6 +60,8 @@
 }
 
 .panel__file {
+  flex: 1;
+  min-width: 0;
   color: var(--text-3);
   font-size: 13px;
   overflow: hidden;
@@ -252,6 +254,26 @@
 .conf--ok {
   background: #e2f1de;
   color: #2f7d3a;
+}
+
+[data-theme='dark'] .conf--low {
+  background: rgba(242, 102, 93, 0.14);
+  color: #f0978f;
+}
+
+[data-theme='dark'] .conf--mid {
+  background: rgba(214, 170, 80, 0.14);
+  color: #d9b56e;
+}
+
+[data-theme='dark'] .conf--high {
+  background: rgba(95, 208, 111, 0.12);
+  color: #8bd596;
+}
+
+[data-theme='dark'] .conf--ok {
+  background: rgba(95, 208, 111, 0.2);
+  color: #9fe2a8;
 }
 
 .editor {

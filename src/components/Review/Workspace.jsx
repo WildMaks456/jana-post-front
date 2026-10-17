@@ -4,6 +4,7 @@ import { mapQueries } from '../../address/records';
 import CustomMap from '../CustomMap/CustomMap';
 import { createNominatimProvider } from '../CustomMap/geocodeProviders';
 import Logo from '../Logo';
+import ThemeToggle from '../ThemeToggle';
 import Steps from '../Steps';
 import RecordEditor from './RecordEditor';
 import RecordItem from './RecordItem';
@@ -35,7 +36,7 @@ function matchesQuery(record, q) {
   return has(record.id) || has(record.raw_address) || FIELDS.some((f) => has(record[f.key]));
 }
 
-export default function Workspace({ records, fileName, onSave, onExport, onReset }) {
+export default function Workspace({ records, fileName, theme, onToggleTheme, onSave, onExport, onReset }) {
   const [filter, setFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState(null);
@@ -89,10 +90,11 @@ export default function Workspace({ records, fileName, onSave, onExport, onReset
     <div className="workspace">
       <div className="workspace__map">
         <CustomMap
+          key={theme}
           geocoder={geocoder}
           initialCenter={KAZAKHSTAN}
           initialZoom={5}
-          defaultStyleId="carto-voyager"
+          defaultStyleId={theme === 'dark' ? 'carto-dark' : 'carto-voyager'}
           focusQueries={open && !hasCoords ? mapQueries(open) : undefined}
           focusPoint={hasCoords ? { lat: open.lat, lng: open.lng, label: open.raw_address } : undefined}
         />
@@ -116,8 +118,11 @@ export default function Workspace({ records, fileName, onSave, onExport, onReset
                   Скачать JSON
                 </button>
               </div>
-              <div className="panel__file">
-                {fileName} · {records.length} адр.
+              <div className="pblock__row">
+                <span className="panel__file">
+                  {fileName} · {records.length} адр.
+                </span>
+                <ThemeToggle theme={theme} onToggle={onToggleTheme} />
               </div>
             </section>
 
